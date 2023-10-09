@@ -1,0 +1,13 @@
+*.out
+*.o
+*.txt
+*.log
+my_echo
+my_id
+my_cat
+my_cp
+printf_write
+*.json
+.cache
+*/.cache
+*.idx
