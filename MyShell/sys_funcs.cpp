@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <sys/wait.h>
 
 #include <cstring>
 #include <iostream>
@@ -262,12 +263,12 @@ void user_loop (char* input_line)
         std::vector<char*> words;
         parse_buffer_to_words (words, input_line);
 
-        run_commands (words);
-
         if ((strncmp(input_line, "quit", 4) == 0) || (strncmp(input_line, "q", 1) == 0))
         {
             return;
         }
+
+        run_commands (words);
     }
 }
 
@@ -298,11 +299,6 @@ void parse_buffer_to_words (std::vector<char*>& words, char* buffer)
             buffer[cnt] = '\0';
         }
     }
-
-    // for (uint64_t cnt = 0; cnt != words.size(); ++cnt)
-    // {
-    //     printf ("%s\n", words[cnt]);
-    // }
 }
 
 void run_commands (std::vector<char*>& words)
@@ -329,35 +325,84 @@ void run_commands (std::vector<char*>& words)
         }
         else
         {
-            argv_arr[process_cnt][inner_cnt] = "\0";
-
-            make_slave (argv_arr[process_cnt]);
-
-            delete[] argv_arr[process_cnt];
-
+            argv_arr[process_cnt][inner_cnt] = NULL;
             ++process_cnt;
+
             inner_cnt = 0;
         }
     }
+    argv_arr[process_cnt][inner_cnt] = NULL;
+    ++process_cnt;
 
-    argv_arr[process_cnt][inner_cnt] = "\0";
+    if (fork() == 0)
+    {
+        process_branching ((char* const**) argv_arr, 0, process_cnt);
 
-    // for (uint64_t inner_cnt = 0; argv_arr[process_cnt][inner_cnt][0] != '\0'; ++inner_cnt)
-    // {
-    //     printf ("{%s}\n", argv_arr[process_cnt][inner_cnt]);
-    // }
-    // printf ("\n");
+        wait (NULL);
 
+        for (uint64_t cnt = 0; cnt != process_cnt; ++cnt)
+        {
+            // print_argv(argv_arr[cnt]);
+
+            delete[] argv_arr[cnt];
+        }
+        delete[] argv_arr;
+
+        exit (0);
+    }
+    wait (NULL);
+
+    for (uint64_t cnt = 0; cnt != process_cnt; ++cnt)
+    {
+        printf ("===\n");
+        print_argv(argv_arr[cnt]);
+        printf ("===\n");
+
+        delete[] argv_arr[cnt];
+    }
     delete[] argv_arr;
 }
 
-void make_slave (const char* my_argv[])
+void process_branching (char* const** arr_argv, uint64_t cnt_process, uint64_t amnt_process)
 {
-    for (uint64_t cnt = 0; my_argv[cnt][0] != '\0'; ++cnt)
+    int pipe_ends[2];
+
+    for (; cnt_process != amnt_process; ++cnt_process)
+    {
+        printf ("[%d] %ld/%ld\n", getpid(), cnt_process, amnt_process);
+
+        if (cnt_process != amnt_process - 1)
+        {
+            printf ("%ld -> %ld\n", cnt_process, cnt_process + 1);
+
+            pipe(pipe_ends);
+            if (fork () == 0)
+            {
+                dup2(pipe_ends[1], STDOUT_FILENO);
+                close(pipe_ends[1]);
+
+                process_branching(arr_argv, cnt_process + 1, amnt_process);
+
+                return;
+            }
+            close (pipe_ends[1]);
+        }
+
+        break;
+    }
+    wait (NULL);
+
+    print_argv((const char**) arr_argv[cnt_process]);
+    execvp(arr_argv[cnt_process][0], &(arr_argv[cnt_process][0]));
+    perror("Exec failed");
+}
+
+void print_argv (const char* my_argv[])
+{
+    for (uint64_t cnt = 0; my_argv[cnt] != NULL; ++cnt)
     {
         printf ("{%s}\n", my_argv[cnt]);
     }
-    printf ("\n");
 }
 
 //===================================================================================================================
