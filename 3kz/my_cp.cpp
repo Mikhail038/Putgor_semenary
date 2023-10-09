@@ -16,17 +16,10 @@
 
 const struct option options_array[] =
 {
-<<<<<<< HEAD
-    {"force", no_argument, NULL, 'f'},
-    {"verbose", no_argument, NULL, 'v'},
-    {"interative", no_argument, NULL, 'i'},
-    {"help", no_argument, NULL, 'h'}
-=======
     {"force",       no_argument, NULL, 'f'},
     {"verbose",     no_argument, NULL, 'v'},
     {"interative",  no_argument, NULL, 'i'},
     {"help",        no_argument, NULL, 'h'}
->>>>>>> ef2f3e6 (1)
 };
 
 int main (int argc, char* const* argv)
@@ -77,9 +70,6 @@ int main (int argc, char* const* argv)
     // printf ("%d %d\n", argc, current_line);
 
     MY_COOLER_ASSERT(argc - current_line >= 2, 0);
-<<<<<<< HEAD
-    copy_file(argv[current_line], argv[current_line + 1], &flags);
-=======
 
     if (argc - current_line > 1)
     {
@@ -90,7 +80,6 @@ int main (int argc, char* const* argv)
     // {
         copy_file(argv[current_line], argv[current_line + 1], &flags);
     // }
->>>>>>> ef2f3e6 (1)
 
     current_line += 2;
 }

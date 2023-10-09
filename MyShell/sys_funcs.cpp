@@ -308,37 +308,47 @@ void parse_buffer_to_words (std::vector<char*>& words, char* buffer)
 void run_commands (std::vector<char*>& words)
 {
     const int MAX_CMD_ARGS = 10;
+    const int MAX_CMDS = 10;
 
-    const char* my_argv[MAX_CMD_ARGS][1] = {};
-    // const char* nullstring = "\0";
+    const char*** argv_arr = new const char** [MAX_CMDS];
 
-    uint64_t process_cnt = 0;
-    uint64_t inner_cnt = 0;
+    uint64_t process_cnt    = 0;
+    uint64_t inner_cnt      = 0;
     for (uint64_t cnt = 0; cnt != words.size(); ++cnt)
     {
+
         if (strncmp (words[cnt], "|", 1) != 0)
         {
-            my_argv[process_cnt][inner_cnt] = words[cnt];
+            if (inner_cnt == 0)
+            {
+                argv_arr[process_cnt] = new const char* [MAX_CMD_ARGS];
+            }
+
+            argv_arr[process_cnt][inner_cnt] = words[cnt];
             ++inner_cnt;
         }
         else
         {
-            my_argv[process_cnt][inner_cnt] = "\0";
+            argv_arr[process_cnt][inner_cnt] = "\0";
 
-            make_slave (my_argv[process_cnt]);
+            make_slave (argv_arr[process_cnt]);
+
+            delete[] argv_arr[process_cnt];
 
             ++process_cnt;
             inner_cnt = 0;
         }
     }
 
-    my_argv[process_cnt][inner_cnt] = "\0";
+    argv_arr[process_cnt][inner_cnt] = "\0";
 
-    for (uint64_t cnt = 0; my_argv[process_cnt][cnt][0] != '\0'; ++cnt)
-    {
-        printf ("{%s}\n", my_argv[cnt]);
-    }
-    printf ("\n");
+    // for (uint64_t inner_cnt = 0; argv_arr[process_cnt][inner_cnt][0] != '\0'; ++inner_cnt)
+    // {
+    //     printf ("{%s}\n", argv_arr[process_cnt][inner_cnt]);
+    // }
+    // printf ("\n");
+
+    delete[] argv_arr;
 }
 
 void make_slave (const char* my_argv[])
