@@ -91,7 +91,7 @@ void judge (uint64_t amnt_runners, id_t id)
         printf("J: Where is runner?\n");
         if (msgrcv(id, &buf, MSG_SIZE, 0, 0) < 0)
         {
-            perror ("");
+            perror ("judge name rcv");
         }
         printf("J: Ok %ld/%ld\n", cnt, amnt_runners);
 
@@ -105,7 +105,7 @@ void judge (uint64_t amnt_runners, id_t id)
 
     if (msgrcv(id, &buf, MSG_SIZE, amnt_runners + 1, 0) < 0)
     {
-        perror ("");
+        perror ("last rcv");
     }
     printf ("J: FINISH\n");
 }
