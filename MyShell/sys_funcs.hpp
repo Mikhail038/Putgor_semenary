@@ -52,7 +52,7 @@ void parse_buffer_to_words (std::vector<char*>& words, char* buffer);
 
 void run_commands (std::vector<char*>& words);
 
-void process_branching (char* const** arr_argv, uint64_t cnt_process, uint64_t amnt_process);
+void process_branching (char* const** arr_argv, uint64_t amnt_process);
 
 void print_argv (const char* my_argv[]);
 

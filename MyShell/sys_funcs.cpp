@@ -334,23 +334,12 @@ void run_commands (std::vector<char*>& words)
     argv_arr[process_cnt][inner_cnt] = NULL;
     ++process_cnt;
 
-    if (fork() == 0)
+    process_branching ((char* const**) argv_arr, process_cnt);
+
+    for (uint64_t wait_cnt = 0; wait_cnt != process_cnt; ++wait_cnt)
     {
-        process_branching ((char* const**) argv_arr, 0, process_cnt);
-
         wait (NULL);
-
-        for (uint64_t cnt = 0; cnt != process_cnt; ++cnt)
-        {
-            // print_argv(argv_arr[cnt]);
-
-            delete[] argv_arr[cnt];
-        }
-        delete[] argv_arr;
-
-        exit (0);
     }
-    wait (NULL);
 
     for (uint64_t cnt = 0; cnt != process_cnt; ++cnt)
     {
@@ -363,33 +352,96 @@ void run_commands (std::vector<char*>& words)
     delete[] argv_arr;
 }
 
-void process_branching (char* const** arr_argv, uint64_t cnt_process, uint64_t amnt_process)
+void process_branching (char* const** arr_argv, uint64_t amnt_process)
 {
-    int pipe_ends[2];
+//     if (amnt_process == 1)
+//     {
+//         if (fork() == 0)
+//         {
+//             print_argv((const char**) arr_argv[0]);
+//             execvp(arr_argv[amnt_process - 1][0], &(arr_argv[amnt_process - 1][0]));
+//             perror("Exec failed");
+//
+//             exit (0);
+//         }
+//         return;
+//     }
 
-    printf ("[%d] %ld/%ld\n", getpid(), cnt_process, amnt_process);
-    // printf ("%ld -> %ld\n", cnt_process, cnt_process + 1);
+    const int READ  = 0;
+    const int WRITE = 1;
 
-    pipe(pipe_ends);
-    if (fork () == 0)
+    int pipe_ends[amnt_process][2];
+
+    uint64_t cnt = 0;
+    for (; cnt != amnt_process; ++cnt)
     {
-        if (cnt_process != amnt_process - 1)
+        printf ("[%d] %ld/%ld\n", getpid(), cnt, amnt_process);
+
+        if (cnt != amnt_process - 1)
         {
-            close(pipe_ends[1]);
+            pipe(pipe_ends[cnt]);
         }
-        dup2(pipe_ends[1], STDOUT_FILENO);
 
-        process_branching(arr_argv, cnt_process + 1, amnt_process);
+        if (fork () == 0)
+        {
+            if (cnt != 0)
+            {
+                if (cnt == amnt_process - 1)
+                {
+                    dup2(pipe_ends[cnt][WRITE], STDOUT_FILENO);
+                    close (pipe_ends[cnt][WRITE]);
 
-        return;
+                    close (pipe_ends[cnt][READ]);
+                }
+                else
+                {
+                    dup2(pipe_ends[cnt - 1][WRITE], STDOUT_FILENO);
+                    close (pipe_ends[cnt - 1][WRITE]);
+
+                    close (pipe_ends[cnt - 1][READ]);
+                }
+
+                dup2(pipe_ends[cnt - 1][READ], STDIN_FILENO);
+                close (pipe_ends[cnt - 1][READ]);
+
+                close (pipe_ends[cnt - 1][READ]);
+            }
+
+            if (cnt == amnt_process - 1)
+            {
+                if (fork() == 0)
+                {
+                    printf ("[%ld]\n", cnt);
+                    print_argv((const char**) arr_argv[cnt]);
+                    execvp(arr_argv[cnt][0], &(arr_argv[cnt][0]));
+                    perror("EExec failed");
+                }
+            }
+
+            if (cnt != 0)
+            {
+                printf ("[%ld]\n", cnt - 1);
+                print_argv((const char**) arr_argv[cnt - 1]);
+                execvp(arr_argv[cnt - 1][0], &(arr_argv[cnt - 1][0]));
+                perror("Exec failed");
+            }
+
+            exit (0);
+        }
+        else
+        {
+            // if (cnt == 0)
+            // {
+            //     dup2(pipe_ends[cnt][READ], STDIN_FILENO);
+            // }
+            close (pipe_ends[cnt][READ]);
+            close(pipe_ends[cnt][WRITE]);
+        }
     }
-    close (pipe_ends[1]);
 
-    wait (NULL);
 
-    print_argv((const char**) arr_argv[cnt_process]);
-    execvp(arr_argv[cnt_process][0], &(arr_argv[cnt_process][0]));
-    perror("Exec failed");
+
+    // wait (NULL);
 }
 
 void print_argv (const char* my_argv[])
