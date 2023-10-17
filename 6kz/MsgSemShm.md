@@ -4,6 +4,7 @@
 >sem (semaphore) \
 >mem/shm (memory)
 
+# Messages
 ### open -> read/write -> close
 get -> rcv/snd (msg) | ... | .. | -> ctl (control)
 
@@ -43,3 +44,45 @@ IPC_PRIVATE = const key if key needed only in parent-child relations
 >p. extra arg
 
 cmd to remove fifo __IPC_RMID__
+
+# Semaphores
+## critical section
+~~~C
+begin
+///
+
+///
+end
+~~~
+processes that come to barier __together__ must pass it __one-by-one__ \
+__ENTER__ -> /// -> __LEAVE__ \
+than another
+
+## race condition
+__atomic__ compare-and-set
+
+## binary semaphore
+>down/enter/P \
+>1 -> 0 -> \
+>0 -> 0 wait
+
+>up/leave/V \
+>0 -> 1 \
+>1 -> undefined
+
+## counted semaphore
+int >= 0
+
+__+__ \
+__-__ \
+__==0__
+
+## semget (Key, n, flags)
+need to by initialised
+
+## semget (Key, n, flags)
+## semop (id, arr, n)
+## semctl (id, flag)
+SETVAL
+GETVAL
+better not use
