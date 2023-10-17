@@ -31,7 +31,7 @@ enum Semaphores
 
 #define N_SEMS 6
 
-const uint64_t ROUNDS = 7;
+const uint64_t ROUNDS = 3;
 
 const uint64_t TIME_PER_TRIP    = 1000000;
 const uint64_t TIME_PER_BRIDGE  = 1000000;
@@ -64,6 +64,11 @@ int main ()
     boat (sem_id);
 
     semctl (sem_id, 0, IPC_RMID);
+
+    for (uint64_t cnt = 0; cnt != passengers_amnt; ++cnt)
+    {
+        wait (NULL);
+    }
 }
 
 void semaphore_init (id_t sem_id)
@@ -91,7 +96,11 @@ void passenger (uint64_t cnt, id_t sem_id)
                 {tickets_occupied,  1,0},
             };
             printf ("P[%ld]: Try to buy a ticket    >0>0>0>0\n", cnt);
-            semop(sem_id, buy_ticket, 3);
+            if (semop(sem_id, buy_ticket, 3) != 0)
+            {
+                // perror ("");
+                exit (0);
+            }
             printf ("P[%ld]: I've bought ticket!    +0+0+0+0\n", cnt);
 
             SemOperation get_on_bridge[] =
@@ -100,7 +109,11 @@ void passenger (uint64_t cnt, id_t sem_id)
                 {bridge_occupied,   1,0}
             };
             printf ("P[%ld]: Try to get on a bridge >1>1>1>1\n", cnt);
-            semop(sem_id, get_on_bridge, 2);
+            if (semop(sem_id, get_on_bridge, 2) != 0)
+            {
+                // perror ("");
+                exit (0);
+            }
             printf ("P[%ld]: I've entered a bridge! +1+1+1+1\n", cnt);
 
             usleep (TIME_PER_BRIDGE);
@@ -113,7 +126,11 @@ void passenger (uint64_t cnt, id_t sem_id)
                 {boat_occupied,     1,0}
             };
             printf ("P[%ld]: Try to get on a boat   >2>2>2>2\n", cnt);
-            semop(sem_id, get_on_boat, 4);
+            if (semop(sem_id, get_on_boat, 4) != 0)
+            {
+                // perror ("");
+                exit (0);
+            }
             printf ("P[%ld]: I've entered a boat    2+2+2+2\n", cnt);
 
 
@@ -122,12 +139,20 @@ void passenger (uint64_t cnt, id_t sem_id)
                 {boat_on_trip, 0, 0},
             };
             printf ("P[%ld]: Wait trip start             =3=3=3=3\n", cnt);
-            semop(sem_id,  wait_trip, 1);
+            if (semop(sem_id,  wait_trip, 1) != 0)
+            {
+                // perror ("");
+                exit (0);
+            }
             printf ("P[%ld]: Wait trip finished          =3=3=3=3\n", cnt);
 
 
             printf ("P[%ld]: Try to get on a bridge <4<4<4<4\n", cnt);
-            semop(sem_id, get_on_bridge, 2);
+            if (semop(sem_id, get_on_bridge, 2) != 0)
+            {
+                // perror ("");
+                exit (0);
+            }
             printf ("P[%ld]: I've entered a bridge! -4-4-4-4\n", cnt);
 
             SemOperation get_on_land[] =
@@ -140,7 +165,11 @@ void passenger (uint64_t cnt, id_t sem_id)
                 {tickets_occupied, -1, 0}
             };
             printf ("P[%ld]: Try to get on land     <5<5<5<5\n", cnt);
-            semop(sem_id, get_on_land, 6);
+            if (semop(sem_id, get_on_land, 6) != 0)
+            {
+                // perror ("");
+                exit (0);
+            }
             printf ("P[%ld]: I've got on land!      -5-5-5-5\n", cnt);
 
             // SemOperation wait_next[] =
