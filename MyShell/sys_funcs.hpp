@@ -62,6 +62,8 @@ void destruct_pipes (int** pipe_ends, uint32_t amnt_process);
 
 void print_argv (const char* my_argv[]);
 
+void run_process (char* const* my_argv);
+
 //===================================================================================================================
 
 

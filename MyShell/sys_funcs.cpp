@@ -370,20 +370,48 @@ void process_branching (char* const** arr_argv, uint64_t amnt_process)
 
     for (uint64_t cnt = 0; cnt != amnt_process; ++cnt)
     {
+        printf ("[%d---%d]\n", pipe_ends[cnt][READ], pipe_ends[cnt][WRITE]);
+    }
+
+    for (uint64_t cnt = 0; cnt != amnt_process; ++cnt)
+    {
         printf ("[%d] (%s) %ld/%ld\n", getpid(), arr_argv[cnt][0], cnt, amnt_process);
+        print_argv((const char**) arr_argv[cnt]);
+
         if (fork () == 0)
         {
             dup2 (pipe_ends[cnt][WRITE], STDOUT_FILENO);
+            // close(pipe_ends[cnt][WRITE]);
 
             dup2 (pipe_ends[cnt][READ], STDIN_FILENO);
+            // close(pipe_ends[cnt][READ]);
 
             // printf ("[%ld]\n", cnt);
             // print_argv((const char**) arr_argv[cnt]);
             // destruct_pipes(pipe_ends, amnt_process);
 
-            execvp(arr_argv[cnt][0], &(arr_argv[cnt][0]));
-            perror("Exec failed");
-            exit (0);
+            if (amnt_process != 1)
+            {
+                if (cnt == amnt_process - 1)
+                {
+                    if (fork() == 0)
+                    {
+                        run_process (&(arr_argv[cnt - 1][0]));
+                    }
+
+                    run_process (&(arr_argv[cnt][0]));
+                }
+                else if (cnt != 0)
+                {
+                    run_process (&(arr_argv[cnt - 1][0]));
+                }
+
+                exit(0);
+            }
+            else
+            {
+                run_process(&(arr_argv[cnt][0]));
+            }
         }
         else
         {
@@ -445,10 +473,21 @@ void link_pipes (int** pipe_ends, uint32_t amnt_process)
         int next_pipe[2] = {};
         pipe(next_pipe);
 
+        printf ("created [%d---%d]\n", next_pipe[READ], next_pipe[WRITE]);
+
         pipe_ends[cnt]      [READ]  = next_pipe[WRITE];
         pipe_ends[cnt + 1]  [WRITE] = next_pipe[READ];
     }
     pipe_ends[amnt_process - 1][READ] = STDIN_FILENO;
 }
 
+void run_process (char* const* my_argv)
+{
+    // printf ("+++RUN+++\n");
+    // print_argv((const char**) my_argv);
+
+    execvp(*my_argv, my_argv);
+    perror("Exec failed");
+    exit (0);
+}
 //===================================================================================================================
