@@ -54,6 +54,12 @@ void run_commands (std::vector<char*>& words);
 
 void process_branching (char* const** arr_argv, uint64_t amnt_process);
 
+void construct_pipes (int*** pipe_ends, uint32_t amnt_process);
+
+void link_pipes (int** pipe_ends, uint32_t amnt_process);
+
+void destruct_pipes (int** pipe_ends, uint32_t amnt_process);
+
 void print_argv (const char* my_argv[]);
 
 //===================================================================================================================

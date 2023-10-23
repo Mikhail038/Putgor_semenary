@@ -18,7 +18,7 @@ typedef struct
     char data[1];
 } Message;
 
-const uint64_t TIME_PER_RUNNER = 10;
+const uint64_t TIME_PER_RUNNER = 5;
 
 const long MSG_SIZE = 0;
 

@@ -2,6 +2,7 @@
 #include "sys_funcs.hpp"
 #include <cstddef>
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <fcntl.h>
 #include <sys/types.h>
@@ -250,6 +251,9 @@ void print_help_cp ()
 
 //===================================================================================================================
 
+const int READ  = 0;
+const int WRITE = 1;
+
 void user_loop (char* input_line)
 {
     struct passwd* password = getpwuid (getuid());
@@ -268,7 +272,12 @@ void user_loop (char* input_line)
             return;
         }
 
-        run_commands (words);
+        if (fork() == 0)
+        {
+            run_commands (words);
+            exit (0);
+        }
+        wait (NULL);
     }
 }
 
@@ -354,96 +363,36 @@ void run_commands (std::vector<char*>& words)
 
 void process_branching (char* const** arr_argv, uint64_t amnt_process)
 {
-//     if (amnt_process == 1)
-//     {
-//         if (fork() == 0)
-//         {
-//             print_argv((const char**) arr_argv[0]);
-//             execvp(arr_argv[amnt_process - 1][0], &(arr_argv[amnt_process - 1][0]));
-//             perror("Exec failed");
-//
-//             exit (0);
-//         }
-//         return;
-//     }
+    int** pipe_ends = NULL;
+    construct_pipes (&pipe_ends, amnt_process);
 
-    const int READ  = 0;
-    const int WRITE = 1;
+    link_pipes (pipe_ends, amnt_process);
 
-    int pipe_ends[amnt_process][2];
-
-    uint64_t cnt = 0;
-    for (; cnt != amnt_process; ++cnt)
+    for (uint64_t cnt = 0; cnt != amnt_process; ++cnt)
     {
-        // printf ("[%d] %ld/%ld\n", getpid(), cnt, amnt_process);
-
-        if (cnt != amnt_process - 1)
-        {
-            pipe(pipe_ends[cnt]);
-        }
-
+        printf ("[%d] (%s) %ld/%ld\n", getpid(), arr_argv[cnt][0], cnt, amnt_process);
         if (fork () == 0)
         {
-            if (cnt != 0)
-            {
-                if (cnt == amnt_process - 1)
-                {
-                    dup2(pipe_ends[cnt][WRITE], STDOUT_FILENO);
-                    close (pipe_ends[cnt][WRITE]);
+            dup2 (pipe_ends[cnt][WRITE], STDOUT_FILENO);
 
-                    close (pipe_ends[cnt][READ]);
-                }
-                else
-                {
-                    dup2(pipe_ends[cnt - 1][WRITE], STDOUT_FILENO);
-                    close (pipe_ends[cnt - 1][WRITE]);
+            dup2 (pipe_ends[cnt][READ], STDIN_FILENO);
 
-                    close (pipe_ends[cnt - 1][READ]);
-                }
+            // printf ("[%ld]\n", cnt);
+            // print_argv((const char**) arr_argv[cnt]);
+            // destruct_pipes(pipe_ends, amnt_process);
 
-                dup2(pipe_ends[cnt - 1][READ], STDIN_FILENO);
-                close (pipe_ends[cnt - 1][READ]);
-
-                close (pipe_ends[cnt - 1][WRITE]);
-            }
-
-            if (cnt == amnt_process - 1)
-            {
-                if (fork() == 0)
-                {
-                    // printf ("[%ld]\n", cnt);
-                    // print_argv((const char**) arr_argv[cnt]);
-                    execvp(arr_argv[cnt][0], &(arr_argv[cnt][0]));
-                    perror("EExec failed");
-                    exit (0);
-                }
-            }
-
-            if (cnt != 0)
-            {
-                // printf ("[%ld]\n", cnt - 1);
-                // print_argv((const char**) arr_argv[cnt - 1]);
-                execvp(arr_argv[cnt - 1][0], &(arr_argv[cnt - 1][0]));
-                perror("Exec failed");
-                exit (0);
-            }
-
+            execvp(arr_argv[cnt][0], &(arr_argv[cnt][0]));
+            perror("Exec failed");
             exit (0);
         }
         else
         {
-            // if (cnt == 0)
-            // {
-            //     dup2(pipe_ends[cnt][READ], STDIN_FILENO);
-            // }
             close (pipe_ends[cnt][READ]);
             close(pipe_ends[cnt][WRITE]);
         }
     }
 
-
-
-    // wait (NULL);
+    destruct_pipes(pipe_ends, amnt_process);
 }
 
 void print_argv (const char* my_argv[])
@@ -452,6 +401,54 @@ void print_argv (const char* my_argv[])
     {
         printf ("{%s}\n", my_argv[cnt]);
     }
+}
+
+void construct_pipes (int*** pipe_ends, uint32_t amnt_process)
+{
+    // if (amnt_process > 1)
+    // {
+        *pipe_ends = (int**) calloc (amnt_process, sizeof (int*));
+        for (uint32_t cnt = 0; cnt != amnt_process; ++cnt)
+        {
+            (*pipe_ends)[cnt] = (int*) calloc(2, sizeof (int));
+        }
+    // }
+    // else
+    // {
+    //     *pipe_ends = (int**) calloc (1, sizeof (int*));
+    //     (*pipe_ends)[0] = (int*) calloc(2, sizeof (int));
+    // }
+}
+
+void destruct_pipes (int** pipe_ends, uint32_t amnt_process)
+{
+    // if (amnt_process > 1)
+    // {
+        for (uint32_t cnt = 0; cnt != amnt_process; ++cnt)
+        {
+            free (pipe_ends[cnt]);
+        }
+    // }
+    // else
+    // {
+    //     free(pipe_ends[0]);
+    // }
+
+    free(pipe_ends);
+}
+
+void link_pipes (int** pipe_ends, uint32_t amnt_process)
+{
+    pipe_ends[0][WRITE] = STDOUT_FILENO;
+    for (uint32_t cnt = 0; cnt != amnt_process - 1; ++cnt)
+    {
+        int next_pipe[2] = {};
+        pipe(next_pipe);
+
+        pipe_ends[cnt]      [READ]  = next_pipe[WRITE];
+        pipe_ends[cnt + 1]  [WRITE] = next_pipe[READ];
+    }
+    pipe_ends[amnt_process - 1][READ] = STDIN_FILENO;
 }
 
 //===================================================================================================================
