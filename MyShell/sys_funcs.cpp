@@ -345,11 +345,6 @@ void run_commands (std::vector<char*>& words)
 
     process_branching ((char* const**) argv_arr, process_cnt);
 
-    for (uint64_t wait_cnt = 0; wait_cnt != process_cnt; ++wait_cnt)
-    {
-        wait (NULL);
-    }
-
     for (uint64_t cnt = 0; cnt != process_cnt; ++cnt)
     {
         // printf ("===\n");
@@ -370,7 +365,7 @@ void process_branching (char* const** arr_argv, uint64_t amnt_process)
 
     for (uint64_t cnt = 0; cnt != amnt_process; ++cnt)
     {
-        printf ("[%d---%d]\n", pipe_ends[cnt][READ], pipe_ends[cnt][WRITE]);
+        printf ("[<%d---%d<]\n", pipe_ends[cnt][WRITE], pipe_ends[cnt][READ]);
     }
 
     for (uint64_t cnt = 0; cnt != amnt_process; ++cnt)
@@ -381,10 +376,10 @@ void process_branching (char* const** arr_argv, uint64_t amnt_process)
         if (fork () == 0)
         {
             dup2 (pipe_ends[cnt][WRITE], STDOUT_FILENO);
-            // close(pipe_ends[cnt][WRITE]);
+            close(pipe_ends[cnt][WRITE]);
 
             dup2 (pipe_ends[cnt][READ], STDIN_FILENO);
-            // close(pipe_ends[cnt][READ]);
+            close(pipe_ends[cnt][READ]);
 
             // printf ("[%ld]\n", cnt);
             // print_argv((const char**) arr_argv[cnt]);
@@ -415,12 +410,18 @@ void process_branching (char* const** arr_argv, uint64_t amnt_process)
         }
         else
         {
-            close (pipe_ends[cnt][READ]);
-            close(pipe_ends[cnt][WRITE]);
+            // close (pipe_ends[cnt][READ]);
+            // close (pipe_ends[cnt][WRITE]);
         }
     }
 
+    for (uint64_t wait_cnt = 0; wait_cnt != amnt_process; ++wait_cnt)
+    {
+        wait (NULL);
+    }
+
     destruct_pipes(pipe_ends, amnt_process);
+
 }
 
 void print_argv (const char* my_argv[])
@@ -473,7 +474,7 @@ void link_pipes (int** pipe_ends, uint32_t amnt_process)
         int next_pipe[2] = {};
         pipe(next_pipe);
 
-        printf ("created [%d---%d]\n", next_pipe[READ], next_pipe[WRITE]);
+        printf ("created [<%d---%d<]\n", next_pipe[WRITE], next_pipe[READ]);
 
         pipe_ends[cnt]      [READ]  = next_pipe[WRITE];
         pipe_ends[cnt + 1]  [WRITE] = next_pipe[READ];
